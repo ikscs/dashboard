@@ -1,11 +1,17 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import axios from 'axios'
+import { API_ENDPOINTS } from './config/api'
 import { useRouter } from 'vue-router'
+import DashboardIcon from './components/icons/DashboardIcon.vue'
 
 const router = useRouter()
 const drawer = ref(true)
 const rail = ref(true)
 const theme = ref('light')
+const message = ref('Загрузка...')
+const error = ref(null)
+const loading = ref(false)
 
 const toggleTheme = () => {
   theme.value = theme.value === 'light' ? 'dark' : 'light'
@@ -18,6 +24,25 @@ const toggleDrawer = () => {
 const navigateTo = (path) => {
   router.push(path)
 }
+
+const fetchMessage = async () => {
+  loading.value = true
+  error.value = null
+
+  try {
+    const response = await axios.get(API_ENDPOINTS.HELLO)
+    message.value = response.data.message
+  } catch (err) {
+    error.value = 'Ошибка при загрузке данных: ' + err.message
+    message.value = 'Ошибка загрузки'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  fetchMessage()
+})
 </script>
 
 <template>
@@ -38,8 +63,8 @@ const navigateTo = (path) => {
         <v-divider></v-divider>
 
         <v-list-item
-          prepend-icon="mdi-home"
-          title="Главная"
+          :prepend-icon="DashboardIcon"
+          title="Dashboard"
           @click="navigateTo('/')"
         ></v-list-item>
         
@@ -85,7 +110,7 @@ const navigateTo = (path) => {
       :elevation="1"
       class="app-bar"
     >
-      <v-toolbar-title>Dashboard</v-toolbar-title>
+      <v-toolbar-title>Финансы</v-toolbar-title>
       <v-spacer></v-spacer>
       <v-btn
         :icon="theme === 'light' ? 'mdi-weather-night' : 'mdi-weather-sunny'"
@@ -170,7 +195,14 @@ const navigateTo = (path) => {
   display: flex !important;
   flex-direction: column !important;
   align-items: flex-start !important;
-  background-color: #f5f5f5 !important;
+  background-image: url('@/assets/bg_finance_light.png');
+  background-size: auto;
+  background-position: center;
+  background-repeat: repeat;
+}
+
+.v-theme--dark .main-wrapper {
+  background-image: url('@/assets/bg_finance_dark.png');
 }
 
 .main-content {
@@ -247,5 +279,15 @@ const navigateTo = (path) => {
   margin: 0 !important;
   flex-direction: column !important;
   align-items: flex-start !important;
+}
+
+.v-container.v-container--fluid {
+  background-image: none !important;
+  background: none !important;
+}
+
+[data-v-9b21acc4] {
+  background-image: none !important;
+  background: none !important;
 }
 </style>

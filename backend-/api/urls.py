@@ -12,5 +12,5 @@ router.register(r'currency-rates', views.CPCurrencyRateViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('hello/', views.hello_world, name='hello'),
+    path('hello/', views.hello_world, name='hello_world'),
 ] 

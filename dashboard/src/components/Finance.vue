@@ -1,478 +1,420 @@
 <template>
-  <div class="finance-container">
-    <h2>Финансы</h2>
-    <div v-if="loading" class="loading">Загрузка...</div>
-    <div v-else-if="error" class="error">{{ error }}</div>
-    <div v-else class="finance-data">
-      <div v-for="finance in finances" :key="finance.id" class="finance-item">
-        <h3>{{ finance.name }}</h3>
-        <p>Дата: {{ formatDate(finance.date) }}</p>
-        <p>Сумма: {{ finance.amount }} ₽</p>
-        <p>Категория: {{ finance.category }}</p>
-      </div>
-    </div>
-    <div class="finance">
-      <v-container fluid class="fill-height pa-0">
-        <v-row no-gutters class="fill-height">
-          <v-col cols="12" class="fill-height">
-            <div class="content-wrapper">
-              <v-row>
-                <v-col cols="12" md="6">
-                  <v-card>
-                    <v-card-title>Курсы USD</v-card-title>
-                    <div class="table-wrapper">
-                      <table class="currency-table">
-                        <thead>
-                          <tr>
-                            <th class="text-start">Дата</th>
-                            <th class="text-end">НБУ</th>
-                            <th class="text-end">Межбанк</th>
-                            <th class="text-end">Наличный</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr v-for="item in pivotRates" :key="item.date">
-                            <td>{{ formatDate(item.date) }}</td>
-                            <td class="text-end">{{ formatValue(item.nbu) }}</td>
-                            <td class="text-end">{{ formatValue(item.interbank) }}</td>
-                            <td class="text-end">{{ formatValue(item.cash) }}</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </v-card>
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-card>
-                    <v-card-title>График курсов USD</v-card-title>
-                    <v-card-text style="height: 400px">
-                      <canvas ref="usdChart"></canvas>
-                    </v-card-text>
-                  </v-card>
-                </v-col>
-              </v-row>
-
-              <v-row>
-                <v-col cols="12" md="6">
-                  <v-card>
-                    <v-card-title>Курсы EUR/USD</v-card-title>
-                    <div class="table-wrapper">
-                      <table class="currency-table">
-                        <thead>
-                          <tr>
-                            <th class="text-start">Дата</th>
-                            <th class="text-end">НБУ</th>
-                            <th class="text-end">Межбанк</th>
-                            <th class="text-end">Наличный</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr v-for="item in eurUsdRates" :key="item.date">
-                            <td>{{ formatDate(item.date) }}</td>
-                            <td class="text-end">{{ formatValue(item.nbu) }}</td>
-                            <td class="text-end">{{ formatValue(item.interbank) }}</td>
-                            <td class="text-end">{{ formatValue(item.cash) }}</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </v-card>
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-card>
-                    <v-card-title>График курсов EUR/USD</v-card-title>
-                    <v-card-text style="height: 400px">
-                      <canvas ref="eurUsdChart"></canvas>
-                    </v-card-text>
-                  </v-card>
-                </v-col>
-              </v-row>
+  <div class="finance">
+    <v-container fluid>
+      <v-row>
+        <!-- Первая линия -->
+        <v-col cols="12" md="6">
+          <v-card>
+            <v-card-title>Курсы USD</v-card-title>
+            <div class="table-wrapper">
+              <table class="currency-table">
+                <thead>
+                  <tr>
+                    <th class="text-start">Дата</th>
+                    <th class="text-end">НБУ</th>
+                    <th class="text-end">Межбанк</th>
+                    <th class="text-end">Наличный</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="item in pivotRates" :key="item.date">
+                    <td>{{ formatDate(item.date) }}</td>
+                    <td class="text-end">{{ formatValue(item.nbu) }}</td>
+                    <td class="text-end">{{ formatValue(item.interbank) }}</td>
+                    <td class="text-end">{{ formatValue(item.cash) }}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-          </v-col>
-        </v-row>
-      </v-container>
-    </div>
+          </v-card>
+        </v-col>
+        <v-col cols="12" md="6">
+          <v-card>
+            <v-card-title>График курсов USD</v-card-title>
+            <v-card-text>
+              <canvas id="usdChart"></canvas>
+            </v-card-text>
+          </v-card>
+        </v-col>
+        
+        <!-- Вторая линия -->
+        <v-col cols="12" md="6">
+          <v-card>
+            <v-card-title>Курсы EUR/USD</v-card-title>
+            <div class="table-wrapper">
+              <table class="currency-table">
+                <thead>
+                  <tr>
+                    <th class="text-start">Дата</th>
+                    <th class="text-end">НБУ</th>
+                    <th class="text-end">Межбанк</th>
+                    <th class="text-end">Наличный</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="item in eurUsdRates" :key="item.date">
+                    <td>{{ formatDate(item.date) }}</td>
+                    <td class="text-end">{{ formatValue(item.nbu) }}</td>
+                    <td class="text-end">{{ formatValue(item.interbank) }}</td>
+                    <td class="text-end">{{ formatValue(item.cash) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </v-card>
+        </v-col>
+        <v-col cols="12" md="6">
+          <v-card>
+            <v-card-title>График курсов EUR/USD</v-card-title>
+            <v-card-text>
+              <canvas id="eurUsdChart"></canvas>
+            </v-card-text>
+          </v-card>
+        </v-col>
+      </v-row>
+    </v-container>
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import axios from 'axios'
 import Chart from 'chart.js/auto'
+import { API_ENDPOINTS } from '../config/api'
 
-export default {
-  name: 'Finance',
-  data() {
+const finances = ref([])
+const loading = ref(true)
+const error = ref(null)
+const rates = ref([])
+const usdChart = ref(null)
+const eurUsdChart = ref(null)
+
+const pivotRates = computed(() => {
+  const usdRates = rates.value.filter(rate => rate.currency === 'USD')
+  const dates = [...new Set(usdRates.map(rate => rate.date))].sort()
+  
+  return dates.map(date => {
+    const dayRates = usdRates.filter(rate => rate.date === date)
     return {
-      finances: [],
-      loading: true,
-      error: null,
-      rates: [],
-      usdChart: null,
-      eurUsdChart: null,
-      headers: [
-        { 
-          title: 'Дата',
-          key: 'date',
-          align: 'start'
-        },
-        { 
-          title: 'НБУ',
-          key: 'nbu',
-          align: 'end'
-        },
-        { 
-          title: 'Межбанк',
-          key: 'interbank',
-          align: 'end'
-        },
-        { 
-          title: 'Наличный',
-          key: 'cash',
-          align: 'end'
-        }
-      ]
+      date,
+      nbu: dayRates.find(r => r.type === '0')?.value || null,
+      interbank: dayRates.find(r => r.type === '1')?.value || null,
+      cash: dayRates.find(r => r.type === '2')?.value || null
     }
-  },
-  computed: {
-    pivotRates() {
-      const usdRates = this.rates.filter(rate => rate.currency === 'USD')
-      const dates = [...new Set(usdRates.map(rate => rate.date))].sort()
-      
-      return dates.map(date => {
-        const dayRates = usdRates.filter(rate => rate.date === date)
-        return {
-          date,
-          nbu: dayRates.find(r => r.type === '0')?.value || null,
-          interbank: dayRates.find(r => r.type === '1')?.value || null,
-          cash: dayRates.find(r => r.type === '2')?.value || null
-        }
-      })
-    },
-    eurUsdRates() {
-      const dates = [...new Set(this.rates.map(rate => rate.date))].sort()
-      
-      return dates.map(date => {
-        const dayRates = this.rates.filter(rate => rate.date === date)
-        const eurRates = dayRates.filter(r => r.currency === 'EUR')
-        const usdRates = dayRates.filter(r => r.currency === 'USD')
-        
-        const calculateRatio = (eurType, usdType) => {
-          const eurRate = eurRates.find(r => r.type === eurType)?.value
-          const usdRate = usdRates.find(r => r.type === usdType)?.value
-          return eurRate && usdRate ? (eurRate / usdRate) : null
-        }
+  })
+})
 
-        return {
-          date,
-          nbu: calculateRatio('0', '0'),
-          interbank: calculateRatio('1', '1'),
-          cash: calculateRatio('2', '2')
-        }
-      })
+const eurUsdRates = computed(() => {
+  const dates = [...new Set(rates.value.map(rate => rate.date))].sort()
+  
+  return dates.map(date => {
+    const dayRates = rates.value.filter(rate => rate.date === date)
+    const eurRates = dayRates.filter(r => r.currency === 'EUR')
+    const usdRates = dayRates.filter(r => r.currency === 'USD')
+    
+    const calculateRatio = (eurType, usdType) => {
+      const eurRate = eurRates.find(r => r.type === eurType)?.value
+      const usdRate = usdRates.find(r => r.type === usdType)?.value
+      return eurRate && usdRate ? (eurRate / usdRate) : null
     }
-  },
-  methods: {
-    async fetchFinances() {
-      try {
-        const response = await axios.get('http://localhost:8000/api/finances/')
-        this.finances = response.data
-        this.loading = false
-      } catch (error) {
-        this.error = 'Ошибка при загрузке данных: ' + error.message
-        this.loading = false
-      }
-    },
-    async fetchRates() {
-      try {
-        const endDate = new Date()
-        const startDate = new Date()
-        startDate.setDate(startDate.getDate() - 7)
-        
-        const response = await axios.get('http://localhost:8000/api/currency-rates/', {
-          params: {
-            date_after: this.formatDateForAPI(startDate),
-            date_before: this.formatDateForAPI(endDate)
-          }
-        })
-        this.rates = Array.isArray(response.data) ? response.data : []
-        this.updateCharts()
-      } catch (error) {
-        console.error('Ошибка при загрузке курсов валют:', error)
-        this.rates = []
-      } finally {
-        this.loading = false
-      }
-    },
-    formatDate(date) {
-      return new Date(date).toLocaleDateString('ru-RU')
-    },
-    formatDateForAPI(date) {
-      return date.toISOString().split('T')[0]
-    },
-    formatValue(value) {
-      return value ? Number(value).toFixed(4) : '-'
-    },
-    updateCharts() {
-      this.updateUsdChart()
-      this.updateEurUsdChart()
-    },
-    updateUsdChart() {
-      if (this.usdChart) {
-        this.usdChart.destroy()
-      }
-
-      const datasets = [
-        {
-          label: 'НБУ',
-          data: this.pivotRates.map(r => r.nbu),
-          borderColor: '#FF6384',
-          fill: false,
-          spanGaps: true,
-          tension: 0.1
-        },
-        {
-          label: 'Межбанк',
-          data: this.pivotRates.map(r => r.interbank),
-          borderColor: '#36A2EB',
-          fill: false,
-          spanGaps: true,
-          tension: 0.1
-        },
-        {
-          label: 'Наличный',
-          data: this.pivotRates.map(r => r.cash),
-          borderColor: '#FFCE56',
-          fill: false,
-          spanGaps: true,
-          tension: 0.1
-        }
-      ]
-
-      const ctx = this.$refs.usdChart.getContext('2d')
-      this.usdChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: this.pivotRates.map(r => this.formatDate(r.date)),
-          datasets
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            title: {
-              display: true,
-              text: 'Динамика курсов USD'
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: false
-            }
-          },
-          elements: {
-            line: {
-              tension: 0.1
-            }
-          }
-        }
-      })
-    },
-    updateEurUsdChart() {
-      if (this.eurUsdChart) {
-        this.eurUsdChart.destroy()
-      }
-
-      const datasets = [
-        {
-          label: 'НБУ',
-          data: this.eurUsdRates.map(r => r.nbu),
-          borderColor: '#FF6384',
-          fill: false,
-          spanGaps: true,
-          tension: 0.1
-        },
-        {
-          label: 'Межбанк',
-          data: this.eurUsdRates.map(r => r.interbank),
-          borderColor: '#36A2EB',
-          fill: false,
-          spanGaps: true,
-          tension: 0.1
-        },
-        {
-          label: 'Наличный',
-          data: this.eurUsdRates.map(r => r.cash),
-          borderColor: '#FFCE56',
-          fill: false,
-          spanGaps: true,
-          tension: 0.1
-        }
-      ]
-
-      const ctx = this.$refs.eurUsdChart.getContext('2d')
-      this.eurUsdChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: this.eurUsdRates.map(r => this.formatDate(r.date)),
-          datasets
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            title: {
-              display: true,
-              text: 'Динамика курсов EUR/USD'
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: false
-            }
-          },
-          elements: {
-            line: {
-              tension: 0.1
-            }
-          }
-        }
-      })
+    
+    return {
+      date,
+      nbu: calculateRatio('0', '0'),
+      interbank: calculateRatio('1', '1'),
+      cash: calculateRatio('2', '2')
     }
-  },
-  mounted() {
-    this.fetchFinances()
-    this.fetchRates()
-  },
-  beforeUnmount() {
-    if (this.usdChart) {
-      this.usdChart.destroy()
-    }
-    if (this.eurUsdChart) {
-      this.eurUsdChart.destroy()
-    }
+  })
+})
+
+const fetchFinances = async () => {
+  try {
+    const response = await axios.get(API_ENDPOINTS.FINANCES)
+    finances.value = response.data
+    loading.value = false
+  } catch (error) {
+    error.value = 'Ошибка при загрузке данных: ' + error.message
+    loading.value = false
   }
 }
+
+const fetchRates = async () => {
+  try {
+    const endDate = new Date()
+    const startDate = new Date()
+    startDate.setDate(startDate.getDate() - 7) // Получаем данные за последние 7 дней
+
+    const response = await axios.get(API_ENDPOINTS.CURRENCY_RATES, {
+      params: {
+        date_after: formatDateForAPI(startDate),
+        date_before: formatDateForAPI(endDate)
+      }
+    })
+    rates.value = Array.isArray(response.data) ? response.data : []
+    updateCharts()
+  } catch (error) {
+    console.error('Ошибка при загрузке курсов валют:', error)
+    rates.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+const formatDate = (date) => {
+  return new Date(date).toLocaleDateString('ru-RU')
+}
+
+const formatDateForAPI = (date) => {
+  return date.toISOString().split('T')[0]
+}
+
+const formatValue = (value) => {
+  return value ? Number(value).toFixed(4) : '-'
+}
+
+const updateCharts = () => {
+  updateUsdChart()
+  updateEurUsdChart()
+}
+
+const updateUsdChart = () => {
+  if (usdChart.value) {
+    usdChart.value.destroy()
+  }
+
+  const ctx = document.getElementById('usdChart')
+  if (!ctx) return
+
+  usdChart.value = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: pivotRates.value.map(r => formatDate(r.date)),
+      datasets: [
+        {
+          label: 'НБУ',
+          data: pivotRates.value.map(r => r.nbu),
+          borderColor: '#FF6384',
+          fill: false,
+          spanGaps: true,
+          tension: 0.1
+        },
+        {
+          label: 'Межбанк',
+          data: pivotRates.value.map(r => r.interbank),
+          borderColor: '#36A2EB',
+          fill: false,
+          spanGaps: true,
+          tension: 0.1
+        },
+        {
+          label: 'Наличный',
+          data: pivotRates.value.map(r => r.cash),
+          borderColor: '#4CAF50',
+          fill: false,
+          spanGaps: true,
+          tension: 0.1
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'top',
+          align: 'start',
+          labels: {
+            boxWidth: 12,
+            padding: 15
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: false,
+          ticks: {
+            callback: function(value) {
+              return value.toFixed(2)
+            }
+          }
+        }
+      }
+    }
+  })
+}
+
+const updateEurUsdChart = () => {
+  if (eurUsdChart.value) {
+    eurUsdChart.value.destroy()
+  }
+
+  const ctx = document.getElementById('eurUsdChart')
+  if (!ctx) return
+
+  eurUsdChart.value = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: eurUsdRates.value.map(r => formatDate(r.date)),
+      datasets: [
+        {
+          label: 'НБУ',
+          data: eurUsdRates.value.map(r => r.nbu),
+          borderColor: '#FF6384',
+          fill: false,
+          spanGaps: true,
+          tension: 0.1
+        },
+        {
+          label: 'Межбанк',
+          data: eurUsdRates.value.map(r => r.interbank),
+          borderColor: '#36A2EB',
+          fill: false,
+          spanGaps: true,
+          tension: 0.1
+        },
+        {
+          label: 'Наличный',
+          data: eurUsdRates.value.map(r => r.cash),
+          borderColor: '#4CAF50',
+          fill: false,
+          spanGaps: true,
+          tension: 0.1
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'top',
+          align: 'start',
+          labels: {
+            boxWidth: 12,
+            padding: 15
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: false,
+          ticks: {
+            callback: function(value) {
+              return value.toFixed(4)
+            }
+          }
+        }
+      }
+    }
+  })
+}
+
+onMounted(() => {
+  fetchFinances()
+  fetchRates()
+})
+
+onBeforeUnmount(() => {
+  if (usdChart.value) {
+    usdChart.value.destroy()
+  }
+  if (eurUsdChart.value) {
+    eurUsdChart.value.destroy()
+  }
+})
 </script>
 
 <style scoped>
-.finance-container {
-  padding: 20px;
-  width: 100%;
-  text-align: left;
-}
-
-.loading {
-  text-align: center;
-  padding: 20px;
-  font-size: 1.2em;
-  color: #666;
-}
-
-.error {
-  color: #ff4444;
-  padding: 20px;
-  text-align: center;
-}
-
-.finance-data {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-  padding: 20px 0;
-}
-
-.finance-item {
-  background: #fff;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.finance-item h3 {
-  margin: 0 0 10px 0;
-  color: #2c3e50;
-}
-
-.finance-item p {
-  margin: 5px 0;
-  color: #666;
-}
-
 .finance {
-  height: 100vh;
-  overflow: hidden;
-  width: 100%;
-}
-
-.content-wrapper {
-  height: calc(100vh - 64px);
-  overflow-y: auto;
   padding: 20px;
-  width: 100%;
+  height: calc(100vh - 64px);
+  box-sizing: border-box;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 24px;
 }
 
 .v-container {
-  max-width: 100% !important;
+  height: 100%;
   padding: 0 !important;
+  margin-bottom: 0;
 }
 
 .v-row {
-  margin: 0 !important;
-  width: 100%;
+  margin: 0;
+  height: 100%;
+}
+
+.v-col {
+  padding: 8px;
 }
 
 .table-wrapper {
-  height: 400px;
+  height: 100%;
   overflow-y: auto;
   position: relative;
+  margin: 0 -16px;
+  padding: 0 16px;
 }
 
 .currency-table {
   width: 100%;
   border-collapse: collapse;
+  margin-top: 10px;
 }
 
 .currency-table th {
-  background-color: #f5f5f5;
+  background-color: rgb(var(--v-theme-surface));
   font-weight: bold;
-  color: #000;
-  padding: 12px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  color: rgb(var(--v-theme-on-surface));
+  padding: 8px;
+  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
   position: sticky;
   top: 0;
   z-index: 1;
 }
 
 .currency-table td {
-  padding: 8px 12px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-  background-color: white;
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  background-color: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-on-surface));
 }
 
 .currency-table tr:last-child td {
   border-bottom: none;
 }
 
+.currency-table tbody tr:hover {
+  background-color: rgba(var(--v-theme-surface-variant), 0.1);
+}
+
 .v-card {
-  margin-bottom: 20px;
-  height: 500px;
+  height: 100%;
+  margin: 0;
+  background-color: rgb(var(--v-theme-surface)) !important;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
 .v-card-text {
   flex: 1;
-  overflow: hidden;
+  padding: 8px !important;
   display: flex;
   flex-direction: column;
 }
 
-.v-card-text > div {
+.v-card-text canvas {
   flex: 1;
-  min-height: 0;
-  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  margin-top: 20px;
 }
 
-.v-card-text canvas {
-  max-height: 100%;
+.v-card-title {
+  padding: 12px !important;
+  font-size: 1rem !important;
+  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  flex-shrink: 0;
 }
 </style> 
