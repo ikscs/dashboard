@@ -8,6 +8,11 @@ const error = ref(null)
 const loading = ref(false)
 const latestRates = ref(null)
 const previousRates = ref(null)
+const rateDates = ref({
+  nbu: null,
+  interbank: null,
+  cash: null
+})
 const rateChanges = ref({
   nbu: { value: null, percent: null, trend: '' },
   interbank: { value: null, percent: null, trend: '' },
@@ -41,41 +46,53 @@ const fetchCurrencyRates = async () => {
 
     const usdRates = allRates.filter(rate => rate.currency === 'USD')
 
-    // Сортируем по дате, чтобы получить последние две записи
-    const sortedRates = usdRates.sort((a, b) => new Date(b.date) - new Date(a.date))
+    // Получаем крайние даты для каждого типа курса
+    const nbuRates = usdRates.filter(rate => rate.type === '0').sort((a, b) => new Date(b.date) - new Date(a.date))
+    const interbankRates = usdRates.filter(rate => rate.type === '1').sort((a, b) => new Date(b.date) - new Date(a.date))
+    const cashRates = usdRates.filter(rate => rate.type === '2').sort((a, b) => new Date(b.date) - new Date(a.date))
 
-    if (sortedRates.length >= 2) {
-      const latestDate = sortedRates[0].date
-      const previousDate = sortedRates.find(rate => rate.date !== latestDate)?.date
+    // Получаем данные за крайние даты
+    const latestNbu = nbuRates[0]
+    const latestInterbank = interbankRates[0]
+    const latestCash = cashRates[0]
 
-      if (previousDate) {
-        latestRates.value = {
-          nbu: sortedRates.find(r => r.date === latestDate && r.type === '0')?.value,
-          interbank: sortedRates.find(r => r.date === latestDate && r.type === '1')?.value,
-          cash: sortedRates.find(r => r.date === latestDate && r.type === '2')?.value
-        }
+    // Получаем предыдущие данные для расчета изменений
+    const previousNbu = nbuRates[1]
+    const previousInterbank = interbankRates[1]
+    const previousCash = cashRates[1]
 
-        previousRates.value = {
-          nbu: sortedRates.find(r => r.date === previousDate && r.type === '0')?.value,
-          interbank: sortedRates.find(r => r.date === previousDate && r.type === '1')?.value,
-          cash: sortedRates.find(r => r.date === previousDate && r.type === '2')?.value
-        }
-
-        // Расчет изменений
-        const calculateChange = (latest, previous) => {
-          if (latest === null || previous === null) return { value: null, percent: null, trend: '' }
-          const diff = latest - previous
-          const percent = (diff / previous) * 100
-          // Инвертируем тренд, так как для валюты рост курса - это падение значения
-          const trend = diff < 0 ? 'up' : diff > 0 ? 'down' : 'neutral'
-          return { value: Math.abs(diff), percent: Math.abs(percent), trend: trend }
-        }
-
-        rateChanges.value.nbu = calculateChange(latestRates.value.nbu, previousRates.value.nbu)
-        rateChanges.value.interbank = calculateChange(latestRates.value.interbank, previousRates.value.interbank)
-        rateChanges.value.cash = calculateChange(latestRates.value.cash, previousRates.value.cash)
-      }
+    latestRates.value = {
+      nbu: latestNbu?.value || null,
+      interbank: latestInterbank?.value || null,
+      cash: latestCash?.value || null
     }
+
+    previousRates.value = {
+      nbu: previousNbu?.value || null,
+      interbank: previousInterbank?.value || null,
+      cash: previousCash?.value || null
+    }
+
+    // Сохраняем даты
+    rateDates.value = {
+      nbu: latestNbu?.date || null,
+      interbank: latestInterbank?.date || null,
+      cash: latestCash?.date || null
+    }
+
+    // Расчет изменений
+    const calculateChange = (latest, previous) => {
+      if (latest === null || previous === null) return { value: null, percent: null, trend: '' }
+      const diff = latest - previous
+      const percent = (diff / previous) * 100
+      // Инвертируем тренд, так как для валюты рост курса - это падение значения
+      const trend = diff < 0 ? 'up' : diff > 0 ? 'down' : 'neutral'
+      return { value: Math.abs(diff), percent: Math.abs(percent), trend: trend }
+    }
+
+    rateChanges.value.nbu = calculateChange(latestRates.value.nbu, previousRates.value.nbu)
+    rateChanges.value.interbank = calculateChange(latestRates.value.interbank, previousRates.value.interbank)
+    rateChanges.value.cash = calculateChange(latestRates.value.cash, previousRates.value.cash)
   } catch (err) {
     console.error('Ошибка при загрузке курсов валют:', err)
     error.value = 'Ошибка при загрузке курсов валют: ' + err.message
@@ -94,6 +111,11 @@ const formatChangeValue = (value) => {
 const formatChangePercent = (value) => {
   if (value === null) return '-'
   return Math.abs(value).toFixed(2) + '%'
+}
+
+const formatDate = (date) => {
+  if (!date) return ''
+  return new Date(date).toLocaleDateString('ru-RU')
 }
 
 onMounted(() => {
@@ -116,6 +138,7 @@ onMounted(() => {
           <span v-if="rateChanges.nbu.trend === 'up'">&#9660;</span>
           {{ formatChangePercent(rateChanges.nbu.percent) }} ({{ formatChangeValue(rateChanges.nbu.value) }})
         </div>
+        <div class="currency-date">{{ formatDate(rateDates.nbu) }}</div>
       </div>
       <div class="currency-item">
         <div class="currency-label">Межбанк</div>
@@ -125,6 +148,7 @@ onMounted(() => {
           <span v-if="rateChanges.interbank.trend === 'up'">&#9660;</span>
           {{ formatChangePercent(rateChanges.interbank.percent) }} ({{ formatChangeValue(rateChanges.interbank.value) }})
         </div>
+        <div class="currency-date">{{ formatDate(rateDates.interbank) }}</div>
       </div>
       <div class="currency-item">
         <div class="currency-label">Наличный</div>
@@ -134,6 +158,7 @@ onMounted(() => {
           <span v-if="rateChanges.cash.trend === 'up'">&#9660;</span>
           {{ formatChangePercent(rateChanges.cash.percent) }} ({{ formatChangeValue(rateChanges.cash.value) }})
         </div>
+        <div class="currency-date">{{ formatDate(rateDates.cash) }}</div>
       </div>
     </div>
 
@@ -195,6 +220,13 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   gap: 4px;
+  margin-bottom: 0.5rem;
+}
+
+.currency-date {
+  font-size: 0.75rem;
+  color: #888;
+  font-style: italic;
 }
 
 .currency-change.up {

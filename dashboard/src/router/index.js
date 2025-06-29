@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HelloWorld from '../components/HelloWorld.vue'
 import Finance from '../components/Finance.vue'
-import Advertisement from '../components/Advertisement.vue'
 import CurrencyRates from '../views/CurrencyRates.vue'
 
 const routes = [
@@ -18,7 +17,27 @@ const routes = [
   {
     path: '/advertisement',
     name: 'Advertisement',
-    component: Advertisement
+    component: () => import('../components/Advertisement.vue')
+  },
+  {
+    path: '/seo',
+    name: 'SEO',
+    component: () => import('../components/SEO.vue')
+  },
+  {
+    path: '/market',
+    name: 'Market',
+    component: () => import('../components/Market.vue')
+  },
+  {
+    path: '/cp',
+    name: 'CP',
+    component: () => import('../components/CP.vue')
+  },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: () => import('../components/Settings.vue')
   },
   {
     path: '/currency-rates',

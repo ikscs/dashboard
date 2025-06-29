@@ -1,9 +1,9 @@
 <template>
-  <div class="advertisement-page">
-    <v-card class="welcome-card">
+  <div class="stat-table-container">
+    <v-card class="stat-card">
       <v-card-title class="d-flex align-center">
-        <v-icon size="large" class="mr-3">mdi-google-ads</v-icon>
-        Статистика рекламы за 7 дней (сырые данные)
+        <v-icon class="mr-3">mdi-chart-line</v-icon>
+        Статистика за 7 дней (сырые данные)
         <v-spacer></v-spacer>
         <v-btn
           color="primary"
@@ -113,21 +113,20 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.advertisement-page {
-  width: 100%;
-  height: 100%;
+.stat-table-container {
+  padding: 20px;
 }
 
-.welcome-card {
-  background: rgba(255, 255, 255, 0.9);
+.stat-card {
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
-.v-theme--dark .welcome-card {
-  background: rgba(30, 30, 30, 0.9);
+.v-theme--dark .stat-card {
+  background: rgba(30, 30, 30, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -165,7 +164,7 @@ onMounted(() => {
 
 /* Адаптивность для мобильных устройств */
 @media (max-width: 768px) {
-  .advertisement-page {
+  .stat-table-container {
     padding: 10px;
   }
   

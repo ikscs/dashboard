@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Finance, Advertisement, SEO, Market, CP, CPCurrencyRate
+from .models import Finance, Advertisement, SEO, Market, CP, CPCurrencyRate, MKStatGroup7d
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -39,4 +39,11 @@ class CPCurrencyRateSerializer(serializers.ModelSerializer):
     class Meta:
         model = CPCurrencyRate
         fields = ['date', 'currency', 'type', 'value', 'type_display']
-        read_only_fields = ['date', 'currency', 'type'] 
+        read_only_fields = ['date', 'currency', 'type']
+
+class MKStatGroup7dSerializer(serializers.Serializer):
+    d = serializers.DateField(format="%Y-%m-%d")
+    campaign_name = serializers.CharField()
+    show = serializers.IntegerField()
+    clic = serializers.IntegerField()
+    ctr = serializers.FloatField() 

@@ -3,10 +3,11 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import Finance, Advertisement, SEO, Market, CP, CPCurrencyRate
+from django.db import connection
+from .models import Finance, Advertisement, SEO, Market, CP, CPCurrencyRate, MKStatGroup7d
 from .serializers import (
     FinanceSerializer, AdvertisementSerializer,
-    SEOSerializer, MarketSerializer, CPSerializer, CPCurrencyRateSerializer
+    SEOSerializer, MarketSerializer, CPSerializer, CPCurrencyRateSerializer, MKStatGroup7dSerializer
 )
 
 # Create your views here.
@@ -112,3 +113,63 @@ class CPCurrencyRateViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(date__lte=date_before)
             
         return queryset.order_by('-date')
+
+class MKStatGroup7dViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet для статистики кампаний за 7 дней (только чтение)
+    """
+    serializer_class = MKStatGroup7dSerializer
+    permission_classes = [AllowAny]
+    # Отключаем детальный просмотр, так как нет первичного ключа
+    lookup_field = None
+
+    def get_queryset(self):
+        # Используем raw SQL для обхода проблемы с первичным ключом
+        from django.db import connections
+        with connections['mk_db'].cursor() as cursor:
+            query = """
+                SELECT d, campaign_name, show, clic, ctr 
+                FROM stat_group_7d 
+                ORDER BY d DESC, campaign_name
+            """
+            
+            # Добавляем фильтры
+            filters = []
+            params = []
+            
+            campaign_name = self.request.query_params.get('campaign_name', None)
+            if campaign_name:
+                filters.append("campaign_name ILIKE %s")
+                params.append(f'%{campaign_name}%')
+                
+            date_from = self.request.query_params.get('date_from', None)
+            if date_from:
+                filters.append("d >= %s")
+                params.append(date_from)
+                
+            date_to = self.request.query_params.get('date_to', None)
+            if date_to:
+                filters.append("d <= %s")
+                params.append(date_to)
+                
+            min_ctr = self.request.query_params.get('min_ctr', None)
+            if min_ctr:
+                filters.append("ctr >= %s")
+                params.append(float(min_ctr))
+                
+            min_shows = self.request.query_params.get('min_shows', None)
+            if min_shows:
+                filters.append("show >= %s")
+                params.append(int(min_shows))
+            
+            if filters:
+                query = query.replace("ORDER BY", "WHERE " + " AND ".join(filters) + " ORDER BY")
+            
+            cursor.execute(query, params)
+            columns = [col[0] for col in cursor.description]
+            return [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)

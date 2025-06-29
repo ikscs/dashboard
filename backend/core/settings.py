@@ -117,6 +117,9 @@ DATABASES = {
         'PASSWORD': env('MK_DB_PASSWORD'),
         'HOST': env('MK_DB_HOST'),
         'PORT': env('MK_DB_PORT', default='5432'),
+        'OPTIONS': {
+            'options': '-c search_path=bigquery_raw,public'
+        }
     },
     'log_db': {
         'ENGINE': 'django.db.backends.postgresql',

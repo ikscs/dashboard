@@ -101,3 +101,30 @@ class CPCurrencyRate(models.Model):
     @property
     def type_display(self):
         return dict(self.TYPE_CHOICES).get(self.type, self.type)
+
+class MKStatGroup7dManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().using('mk_db')
+
+class MKStatGroup7d(models.Model):
+    """
+    Модель для статистики по кампаниям за 7 дней из базы mk_db
+    """
+    d = models.DateField(verbose_name='Дата')
+    campaign_name = models.CharField(max_length=255, verbose_name='Название кампании')
+    show = models.IntegerField(verbose_name='Показы')
+    clic = models.IntegerField(verbose_name='Клики')
+    ctr = models.FloatField(verbose_name='CTR')
+
+    objects = MKStatGroup7dManager()
+
+    class Meta:
+        managed = False
+        db_table = 'stat_group_7d'
+        verbose_name = 'Статистика кампании за 7 дней'
+        verbose_name_plural = 'Статистика кампаний за 7 дней'
+        ordering = ['-d', 'campaign_name']
+
+    def __str__(self):
+        return f"{self.d} - {self.campaign_name} (CTR: {self.ctr:.2f}%)"
+

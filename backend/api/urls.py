@@ -9,6 +9,7 @@ router.register(r'seo', views.SEOViewSet)
 router.register(r'market', views.MarketViewSet)
 router.register(r'cp', views.CPViewSet)
 router.register(r'currency-rates', views.CPCurrencyRateViewSet)
+router.register(r'stat-group-7d', views.MKStatGroup7dViewSet, basename='stat-group-7d')
 
 urlpatterns = [
     path('', include(router.urls)),
