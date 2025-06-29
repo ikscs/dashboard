@@ -66,6 +66,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
+import { API_ENDPOINTS } from '../config/api'
 
 const data = ref(null)
 const loading = ref(false)
@@ -90,7 +91,7 @@ const testAPI = async () => {
   error.value = null
   
   try {
-    const response = await axios.get('http://localhost:8000/api/stat-group-7d/')
+    const response = await axios.get(API_ENDPOINTS.ADVERTISEMENT)
     console.log('API Response:', response)
     console.log('Response data:', response.data)
     console.log('Response type:', typeof response.data)
