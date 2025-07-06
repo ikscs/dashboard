@@ -10,6 +10,8 @@ router.register(r'market', views.MarketViewSet)
 router.register(r'cp', views.CPViewSet)
 router.register(r'currency-rates', views.CPCurrencyRateViewSet)
 router.register(r'stat-group-7d', views.MKStatGroup7dViewSet, basename='stat-group-7d')
+router.register(r'stats-uah7d', views.StatUah7DViewSet, basename='stats-uah7d')
+router.register(r'v-utm', views.vUtmViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

@@ -10,7 +10,7 @@ class ExternalDBRouter:
             table_name = model._meta.db_table.lower()
             if table_name.startswith('cp_'):
                 return 'cp_db'
-            elif table_name in ['stat_group_7d'] or table_name.startswith('mk_'):
+            elif table_name in ['stat_group_7d', 'stat_uah_7d', 'gads"."v_utm'] or table_name.startswith('mk_'):
                 return 'mk_db'
             elif table_name.startswith('log_'):
                 return 'log_db'
@@ -28,7 +28,7 @@ class ExternalDBRouter:
             table_name = model._meta.db_table.lower()
             if table_name.startswith('cp_'):
                 return 'cp_db'
-            elif table_name in ['stat_group_7d'] or table_name.startswith('mk_'):
+            elif table_name in ['stat_group_7d', 'stat_uah_7d'] or table_name.startswith('mk_'):
                 return 'mk_db'
             elif table_name.startswith('log_'):
                 return 'log_db'

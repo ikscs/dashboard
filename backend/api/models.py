@@ -128,3 +128,33 @@ class MKStatGroup7d(models.Model):
     def __str__(self):
         return f"{self.d} - {self.campaign_name} (CTR: {self.ctr:.2f}%)"
 
+class StatUah7D(models.Model):
+    segments_date = models.DateField(primary_key=True, db_column='segments_date')
+    uah = models.DecimalField(max_digits=10, decimal_places=2, db_column='uah')
+
+    class Meta:
+        managed = False  # Це View, Django не створює і не змінює його
+        db_table = 'stat_uah_7d'  # ← заміни на точну назву view
+
+    def __str__(self):
+        return f"{self.segments_date} — {self.uah} грн"
+
+class vUtm(models.Model):
+    datetime = models.DateTimeField()
+    ip = models.GenericIPAddressField()
+    country = models.CharField(max_length=2)
+    url = models.CharField(max_length=255)
+    utm_source = models.CharField(max_length=100)
+    utm_medium = models.CharField(max_length=50)
+    utm_campaign = models.CharField(max_length=100)
+    utm_coname = models.CharField(max_length=1)
+    utm_content = models.CharField(max_length=100)
+    utm_term = models.CharField(max_length=255)
+    gclid = models.CharField(max_length=255)
+    rest = models.CharField(max_length=255)
+    id = models.BigIntegerField(primary_key=True)
+    store = models.CharField(max_length=50)
+
+    class Meta:
+        managed = False  # бо таблиця вже існує
+        db_table = 'gads"."v_utm'

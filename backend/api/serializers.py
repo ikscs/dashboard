@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Finance, Advertisement, SEO, Market, CP, CPCurrencyRate, MKStatGroup7d
+from .models import Finance, Advertisement, SEO, Market, CP, CPCurrencyRate, MKStatGroup7d, StatUah7D, vUtm
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -47,3 +47,13 @@ class MKStatGroup7dSerializer(serializers.Serializer):
     show = serializers.IntegerField()
     clic = serializers.IntegerField()
     ctr = serializers.FloatField() 
+
+class StatUah7DSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StatUah7D
+        fields = ['segments_date', 'uah']
+
+class vUtmSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = vUtm
+        fields = '__all__'

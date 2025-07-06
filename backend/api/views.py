@@ -4,11 +4,14 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.db import connection
-from .models import Finance, Advertisement, SEO, Market, CP, CPCurrencyRate, MKStatGroup7d
+from .models import Finance, Advertisement, SEO, Market, CP, CPCurrencyRate, MKStatGroup7d, vUtm
 from .serializers import (
     FinanceSerializer, AdvertisementSerializer,
-    SEOSerializer, MarketSerializer, CPSerializer, CPCurrencyRateSerializer, MKStatGroup7dSerializer
+    SEOSerializer, MarketSerializer, CPSerializer, CPCurrencyRateSerializer, MKStatGroup7dSerializer, vUtmSerializer
 )
+
+from .models import StatUah7D
+from .serializers import StatUah7DSerializer
 
 # Create your views here.
 
@@ -173,3 +176,11 @@ class MKStatGroup7dViewSet(viewsets.ReadOnlyModelViewSet):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+class StatUah7DViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = StatUah7D.objects.all().order_by('-segments_date')
+    serializer_class = StatUah7DSerializer
+
+class vUtmViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = vUtm.objects.all()
+    serializer_class = vUtmSerializer

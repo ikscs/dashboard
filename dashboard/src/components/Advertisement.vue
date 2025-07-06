@@ -1,5 +1,68 @@
 <template>
   <div class="advertisement-page">
+    <!-- Первая таблица: UTM данные -->
+    <v-card class="welcome-card mb-6">
+      <v-card-title class="d-flex align-center">
+        <v-icon size="large" class="mr-3">mdi-tag-multiple</v-icon>
+        UTM данные
+        <v-spacer></v-spacer>
+        <v-btn
+          color="primary"
+          @click="loadUtmData"
+          :loading="utmLoading"
+          prepend-icon="mdi-refresh"
+        >
+          Обновить UTM данные
+        </v-btn>
+      </v-card-title>
+      
+      <v-card-text>
+        <div v-if="utmLoading" class="text-center py-8">
+          <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
+          <div class="mt-4 text-body-1">Загрузка UTM данных...</div>
+        </div>
+        
+        <div v-else-if="utmError" class="text-center py-8">
+          <v-alert type="error" variant="tonal">
+            <v-alert-title>Ошибка загрузки UTM данных</v-alert-title>
+            {{ utmError }}
+          </v-alert>
+        </div>
+        
+        <div v-else-if="utmData && utmData.length > 0" class="advertisement-scroll">
+          <v-table>
+            <thead>
+              <tr>
+                <th v-for="header in utmHeaders" :key="header.key" class="text-left">
+                  {{ header.title }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(item, index) in utmData" :key="index">
+                <td v-for="header in utmHeaders" :key="header.key">
+                  <span v-if="item[header.key] === null || item[header.key] === undefined" class="text-grey">
+                    null
+                  </span>
+                  <span v-else>
+                    {{ item[header.key] }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </v-table>
+        </div>
+        
+        <div v-else class="text-center py-8">
+          <v-alert type="info" variant="tonal">
+            <v-alert-title>Нет UTM данных</v-alert-title>
+            Нажмите "Обновить UTM данные" для загрузки
+          </v-alert>
+        </div>
+      </v-card-text>
+    </v-card>
+
+    <!-- Вторая таблица: Статистика рекламы за 7 дней -->
     <v-card class="welcome-card">
       <v-card-title class="d-flex align-center">
         <v-icon size="large" class="mr-3">mdi-google-ads</v-icon>
@@ -28,7 +91,7 @@
           </v-alert>
         </div>
         
-        <div v-else-if="data && data.length > 0">
+        <div v-else-if="data && data.length > 0" class="advertisement-scroll">
           <v-table>
             <thead>
               <tr>
@@ -68,15 +131,33 @@ import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
 import { API_ENDPOINTS } from '../config/api'
 
+// Данные для первой таблицы (UTM)
+const utmData = ref(null)
+const utmLoading = ref(false)
+const utmError = ref(null)
+
+// Данные для второй таблицы (статистика рекламы)
 const data = ref(null)
 const loading = ref(false)
 const error = ref(null)
 
-// Динамически создаем заголовки на основе данных
+// Заголовки для UTM таблицы
+const utmHeaders = computed(() => {
+  if (!utmData.value || utmData.value.length === 0) return []
+  
+  const firstItem = utmData.value[0]
+  if (!firstItem) return []
+  
+  return Object.keys(firstItem).map(key => ({
+    title: key,
+    key: key
+  }))
+})
+
+// Заголовки для статистики рекламы
 const headers = computed(() => {
   if (!data.value || data.value.length === 0) return []
   
-  // Получаем все уникальные ключи из первого объекта
   const firstItem = data.value[0]
   if (!firstItem) return []
   
@@ -86,6 +167,26 @@ const headers = computed(() => {
   }))
 })
 
+// Загрузка UTM данных
+const loadUtmData = async () => {
+  utmLoading.value = true
+  utmError.value = null
+  
+  try {
+    const response = await axios.get(API_ENDPOINTS.V_UTM)
+    console.log('UTM API Response:', response)
+    console.log('UTM Response data:', response.data)
+    
+    utmData.value = response.data
+  } catch (err) {
+    console.error('UTM API Error:', err)
+    utmError.value = err.message
+  } finally {
+    utmLoading.value = false
+  }
+}
+
+// Загрузка данных статистики рекламы
 const testAPI = async () => {
   loading.value = true
   error.value = null
@@ -109,6 +210,7 @@ const testAPI = async () => {
 
 // Автоматическая загрузка данных при монтировании компонента
 onMounted(() => {
+  loadUtmData()
   testAPI()
 })
 </script>
@@ -135,6 +237,13 @@ onMounted(() => {
 .text-grey {
   color: rgba(var(--v-theme-on-surface), 0.5) !important;
   font-style: italic;
+}
+
+.advertisement-scroll {
+  max-height: 60vh;
+  overflow-y: auto;
+  margin-top: 8px;
+  margin-bottom: 8px;
 }
 
 /* Стили для таблицы */
@@ -169,7 +278,9 @@ onMounted(() => {
   .advertisement-page {
     padding: 10px;
   }
-  
+  .advertisement-scroll {
+    max-height: 40vh;
+  }
   :deep(.v-table td),
   :deep(.v-table th) {
     padding: 8px 12px;
