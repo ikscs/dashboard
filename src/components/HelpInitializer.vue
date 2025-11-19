@@ -67,7 +67,7 @@
 <script setup>
 import { ref } from 'vue'
 import axios from 'axios'
-import { API_ENDPOINTS } from '../config/api'
+import { API_ENDPOINTS, getDocsUrl } from '../config/api'
 
 const loading = ref(false)
 const error = ref(null)
@@ -76,18 +76,18 @@ const initializedLinks = ref([])
 
 // Начальные ссылки для всех разделов меню
 const defaultHelpLinks = [
-  { component: 'dashboard', url: 'https://dashboard.api4/docs/dashboard' },
-  { component: 'finance', url: 'https://dashboard.api4/docs/finance' },
-  { component: 'advertisement', url: 'https://dashboard.api4/docs/advertisement' },
-  { component: 'seo', url: 'https://dashboard.api4/docs/seo' },
-  { component: 'seo-top', url: 'https://dashboard.api4/docs/seo/top' },
-  { component: 'seo-metatags', url: 'https://dashboard.api4/docs/seo/metatags' },
-  { component: 'seo-metatags-gen', url: 'https://dashboard.api4/docs/seo/metatags-gen' },
-  { component: 'market', url: 'https://dashboard.api4/docs/market' },
-  { component: 'cp', url: 'https://dashboard.api4/docs/cp' },
-  { component: 'projects', url: 'https://dashboard.api4/docs/projects' },
-  { component: 'settings', url: 'https://dashboard.api4/docs/settings' },
-  { component: 'currency-rates', url: 'https://dashboard.api4/docs/currency-rates' }
+  { component: 'dashboard', url: getDocsUrl('dashboard') },
+  { component: 'finance', url: getDocsUrl('finance') },
+  { component: 'advertisement', url: getDocsUrl('advertisement') },
+  { component: 'seo', url: getDocsUrl('seo') },
+  { component: 'seo-top', url: getDocsUrl('seo/top') },
+  { component: 'seo-metatags', url: getDocsUrl('seo/metatags') },
+  { component: 'seo-metatags-gen', url: getDocsUrl('seo/metatags-gen') },
+  { component: 'market', url: getDocsUrl('market') },
+  { component: 'cp', url: getDocsUrl('cp') },
+  { component: 'projects', url: getDocsUrl('projects') },
+  { component: 'settings', url: getDocsUrl('settings') },
+  { component: 'currency-rates', url: getDocsUrl('currency-rates') }
 ]
 
 const getIconForComponent = (component) => {

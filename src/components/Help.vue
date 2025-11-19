@@ -143,7 +143,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
-import { API_ENDPOINTS } from '../config/api'
+import { API_ENDPOINTS, getDocsUrl } from '../config/api'
 import HelpInitializer from './HelpInitializer.vue'
 
 const helpLinks = ref([])

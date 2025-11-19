@@ -111,7 +111,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
-import { API_ENDPOINTS } from '../config/api'
+import { API_ENDPOINTS, API_HEADERS } from '../config/api'
 
 // Данные для первой таблицы (UTM)
 const utmData = ref(null)
@@ -174,7 +174,9 @@ const testAPI = async () => {
   error.value = null
   
   try {
-    const response = await axios.get(API_ENDPOINTS.ADVERTISEMENT)
+    const response = await axios.get(API_ENDPOINTS.ADVERTISEMENT, {
+      headers: API_HEADERS.ADV
+    })
     console.log('API Response:', response)
     console.log('Response data:', response.data)
     console.log('Response type:', typeof response.data)

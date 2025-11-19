@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
-import { API_ENDPOINTS } from './config/api'
+import { API_ENDPOINTS, API_HEADERS, API_BASE_URL, getDocsUrl } from './config/api'
 import { useRouter } from 'vue-router'
 import DashboardIcon from './components/icons/DashboardIcon.vue'
 
@@ -67,7 +67,7 @@ const openHelp = async () => {
   
   // Если мы находимся на странице Help, открываем общую документацию
   if (currentPath === '/help') {
-    window.open('https://dashboard.api4/docs/general', '_blank')
+    window.open(getDocsUrl('general'), '_blank')
     return
   }
   
@@ -94,7 +94,7 @@ const openHelp = async () => {
     } else {
       // Если нет специфичной документации, открываем общую
       console.log('Специфічна документація не знайдена, відкриваємо загальну')
-      window.open('https://dashboard.api4/docs/general', '_blank')
+      window.open(getDocsUrl('general'), '_blank')
     }
   } catch (error) {
     console.error('Критична помилка при отриманні URL документації:', error)
@@ -106,7 +106,7 @@ const openHelp = async () => {
     
     // Если произошла ошибка, открываем общую документацию
     try {
-      window.open('https://dashboard.api4/docs/general', '_blank')
+      window.open(getDocsUrl('general'), '_blank')
     } catch (fallbackError) {
       console.error('Навіть fallback не працює:', fallbackError)
       alert('Помилка при відкритті документації. Перевірте консоль браузера для деталей.')
@@ -172,18 +172,18 @@ const getHelpUrlForPath = async (path) => {
   
   // Fallback до старих посилань, якщо база недоступна
   const fallbackMap = {
-    '/': 'https://dashboard.api4/docs/dashboard',
-    '/finance': 'https://dashboard.api4/docs/finance',
-    '/advertisement': 'https://dashboard.api4/docs/advertisement',
-    '/seo': 'https://dashboard.api4/docs/seo',
-    '/seo/top': 'https://dashboard.api4/docs/seo/top',
-    '/seo/metatags': 'https://dashboard.api4/docs/seo/metatags',
-    '/seo/metatags-check': 'https://dashboard.api4/docs/seo/metatags-gen',
-    '/market': 'https://dashboard.api4/docs/market',
-    '/cp': 'https://dashboard.api4/docs/cp',
-    '/projects': 'https://dashboard.api4/docs/projects',
-    '/settings': 'https://dashboard.api4/docs/settings',
-    '/currency-rates': 'https://dashboard.api4/docs/currency-rates'
+    '/': getDocsUrl('dashboard'),
+    '/finance': getDocsUrl('finance'),
+    '/advertisement': getDocsUrl('advertisement'),
+    '/seo': getDocsUrl('seo'),
+    '/seo/top': getDocsUrl('seo/top'),
+    '/seo/metatags': getDocsUrl('seo/metatags'),
+    '/seo/metatags-check': getDocsUrl('seo/metatags-gen'),
+    '/market': getDocsUrl('market'),
+    '/cp': getDocsUrl('cp'),
+    '/projects': getDocsUrl('projects'),
+    '/settings': getDocsUrl('settings'),
+    '/currency-rates': getDocsUrl('currency-rates')
   }
   
   // Завантажуємо посилання з бази даних

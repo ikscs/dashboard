@@ -346,53 +346,127 @@ const forceRefreshChartData = async () => {
 
 const fetchAdStats = async () => {
   try {
-    const response = await axios.get(API_ENDPOINTS.ADVERTISEMENT)
-    const data = Array.isArray(response.data) ? response.data : []
+    console.log('Запрос к ADVERTISEMENT:', API_ENDPOINTS.ADVERTISEMENT)
+    console.log('Заголовки:', API_HEADERS.ADV)
+    
+    const response = await axios.get(API_ENDPOINTS.ADVERTISEMENT, {
+      headers: API_HEADERS.ADV
+    })
+    
+    console.log('Ответ API:', response.status, response.data)
+    console.log('Тип данных:', typeof response.data)
+    console.log('Является массивом:', Array.isArray(response.data))
+    
+    // Обработка разных форматов ответа
+    let data = []
+    if (Array.isArray(response.data)) {
+      data = response.data
+    } else if (response.data && typeof response.data === 'object') {
+      // Если это объект, проверяем есть ли в нем массив данных
+      if (Array.isArray(response.data.data)) {
+        data = response.data.data
+      } else if (Array.isArray(response.data.results)) {
+        data = response.data.results
+      } else {
+        // Если это один объект, оборачиваем в массив
+        data = [response.data]
+      }
+    }
+    
+    console.log('Обработанные данные:', data)
+    console.log('Количество элементов:', data.length)
+    
     adStats.value = data
+    
     if (data.length > 0) {
       // Сортируем по дате по убыванию
-      const sorted = [...data].sort((a, b) => new Date(b.date) - new Date(a.date))
+      const sorted = [...data].sort((a, b) => {
+        const dateA = new Date(a.date || a.date_created || a.created_at || 0)
+        const dateB = new Date(b.date || b.date_created || b.created_at || 0)
+        return dateB - dateA
+      })
+      
+      console.log('Отсортированные данные:', sorted)
+      
       const latest = sorted[0]
       const prev = sorted[1] || {}
+      
+      console.log('Последние данные:', latest)
+      console.log('Предыдущие данные:', prev)
+      
       adSummary.value = {
-        show: latest.show ?? latest.total_views ?? null,
-        click: latest.click ?? latest.total_clicks ?? null,
-        ctr: latest.ctr ?? null,
-        date: latest.date ?? null
+        show: latest.show ?? latest.total_views ?? latest.views ?? latest.impressions ?? null,
+        click: latest.click ?? latest.total_clicks ?? latest.clicks ?? null,
+        ctr: latest.ctr ?? (latest.click && latest.show ? latest.click / latest.show : null),
+        date: latest.date ?? latest.date_created ?? latest.created_at ?? null
       }
+      
       adPrevSummary.value = {
-        show: prev.show ?? prev.total_views ?? null,
-        click: prev.click ?? prev.total_clicks ?? null,
-        ctr: prev.ctr ?? null,
-        date: prev.date ?? null
+        show: prev.show ?? prev.total_views ?? prev.views ?? prev.impressions ?? null,
+        click: prev.click ?? prev.total_clicks ?? prev.clicks ?? null,
+        ctr: prev.ctr ?? (prev.click && prev.show ? prev.click / prev.show : null),
+        date: prev.date ?? prev.date_created ?? prev.created_at ?? null
       }
+      
       adDiff.value = {
         show: adSummary.value.show !== null && adPrevSummary.value.show !== null ? adSummary.value.show - adPrevSummary.value.show : null,
         click: adSummary.value.click !== null && adPrevSummary.value.click !== null ? adSummary.value.click - adPrevSummary.value.click : null,
         ctr: adSummary.value.ctr !== null && adPrevSummary.value.ctr !== null ? adSummary.value.ctr - adPrevSummary.value.ctr : null
       }
+      
+      console.log('Установленные значения:', {
+        adSummary: adSummary.value,
+        adPrevSummary: adPrevSummary.value,
+        adDiff: adDiff.value
+      })
+    } else {
+      console.warn('Данные рекламы пусты или не найдены')
+      // Очищаем значения, чтобы показать "Немає даних реклами"
+      adSummary.value = {
+        show: null,
+        click: null,
+        ctr: null,
+        date: null
+      }
+      adPrevSummary.value = {
+        show: null,
+        click: null,
+        ctr: null,
+        date: null
+      }
+      adDiff.value = {
+        show: null,
+        click: null,
+        ctr: null
+      }
     }
   } catch (err) {
+    console.error('Ошибка при загрузке рекламы:', err)
+    console.error('URL:', err.config?.url)
+    console.error('Заголовки запроса:', err.config?.headers)
+    console.error('Статус:', err.response?.status)
+    console.error('Данные ошибки:', err.response?.data)
+    
     // Не критично для дашборда
     adStats.value = []
     
-    // Fallback дані для тестування
-    adSummary.value = { 
-      show: 12500, 
-      click: 450, 
-      ctr: 0.036, 
-      date: new Date().toISOString() 
+    // Очищаем значения при ошибке
+    adSummary.value = {
+      show: null,
+      click: null,
+      ctr: null,
+      date: null
     }
-    adPrevSummary.value = { 
-      show: 11800, 
-      click: 420, 
-      ctr: 0.0356, 
-      date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() 
+    adPrevSummary.value = {
+      show: null,
+      click: null,
+      ctr: null,
+      date: null
     }
-    adDiff.value = { 
-      show: 700, 
-      click: 30, 
-      ctr: 0.0004 
+    adDiff.value = {
+      show: null,
+      click: null,
+      ctr: null
     }
   }
 }
@@ -609,50 +683,177 @@ const fetchMessage = async () => {
 }
 
 const fetchCurrencyRates = async () => {
+  loading.value = true
+  error.value = null
+  
   try {
-    const response = await axios.get(API_ENDPOINTS.CURRENCY_RATES)
+    console.log('Запрос курсов валют:', API_ENDPOINTS.CURRENCY_RATES)
     
-    const allRates = Array.isArray(response.data) ? response.data : []
+    const response = await axios.get(API_ENDPOINTS.CURRENCY_RATES, {
+      headers: API_HEADERS.CP
+    })
+    
+    console.log('Ответ API курсов:', response.status, response.data)
+    console.log('Тип данных:', typeof response.data)
+    console.log('Является массивом:', Array.isArray(response.data))
+    
+    // Обработка разных форматов ответа
+    let allRates = []
+    if (Array.isArray(response.data)) {
+      allRates = response.data
+    } else if (response.data && typeof response.data === 'object') {
+      if (Array.isArray(response.data.data)) {
+        allRates = response.data.data
+      } else if (Array.isArray(response.data.results)) {
+        allRates = response.data.results
+      } else if (response.data.rates && Array.isArray(response.data.rates)) {
+        allRates = response.data.rates
+      }
+    }
+    
+    console.log('Обработанные курсы:', allRates)
+    console.log('Количество курсов:', allRates.length)
 
     if (allRates.length === 0) {
+      console.warn('API вернул пустой массив курсов валют')
+      error.value = 'Нет данных о курсах валют'
+      loading.value = false
       return
     }
 
-    const usdRates = allRates.filter(rate => rate.currency === 'USD')
+    const usdRates = allRates.filter(rate => {
+      const currency = rate.currency || rate.curr || rate.code
+      return currency === 'USD' || currency === 'usd'
+    })
+    
+    console.log('USD курсы:', usdRates)
+    console.log('Количество USD курсов:', usdRates.length)
+    
+    if (usdRates.length === 0) {
+      console.warn('Нет данных для USD')
+      error.value = 'Нет данных о курсе USD'
+      loading.value = false
+      return
+    }
 
     // Получаем крайние даты для каждого типа курса
-    const nbuRates = usdRates.filter(rate => rate.type === '0').sort((a, b) => new Date(b.date) - new Date(a.date))
-    const interbankRates = usdRates.filter(rate => rate.type === '1').sort((a, b) => new Date(b.date) - new Date(a.date))
-    const cashRates = usdRates.filter(rate => rate.type === '2').sort((a, b) => new Date(b.date) - new Date(a.date))
+    // Проверяем разные возможные значения type
+    console.log('Все USD курсы перед фильтрацией:', usdRates.map(r => ({
+      type: r.type,
+      rate_type: r.rate_type,
+      type_id: r.type_id,
+      value: r.value,
+      date: r.date,
+      currency: r.currency
+    })))
+    
+    const nbuRates = usdRates.filter(rate => {
+      // ИСПРАВЛЕНИЕ: используем ?? вместо ||, чтобы 0 не считался falsy
+      const type = rate.type ?? rate.rate_type ?? rate.type_id
+      
+      console.log('Проверка типа для НБУ:', {
+        type: type,
+        typeType: typeof type,
+        rate: rate
+      })
+      
+      // Строгая проверка для type = 0
+      if (type === 0) {
+        console.log('Найден НБУ курс (type === 0):', rate)
+        return true
+      }
+      if (type === '0') {
+        console.log('Найден НБУ курс (type === "0"):', rate)
+        return true
+      }
+      if (String(type).trim() === '0') {
+        console.log('Найден НБУ курс (String(type) === "0"):', rate)
+        return true
+      }
+      
+      return false
+    }).sort((a, b) => {
+      const dateA = new Date(a.date || a.date_created || 0)
+      const dateB = new Date(b.date || b.date_created || 0)
+      return dateB - dateA
+    })
+    
+    console.log('Отфильтрованные НБУ курсы:', nbuRates)
+    console.log('Количество НБУ курсов:', nbuRates.length)
+    
+    const interbankRates = usdRates.filter(rate => {
+      const type = rate.type || rate.rate_type || rate.type_id
+      const typeStr = String(type).trim()
+      return typeStr === '1' || type === 1 || typeStr === 'interbank' || typeStr === 'INTERBANK'
+    }).sort((a, b) => {
+      const dateA = new Date(a.date || a.date_created || 0)
+      const dateB = new Date(b.date || b.date_created || 0)
+      return dateB - dateA
+    })
+    
+    const cashRates = usdRates.filter(rate => {
+      const type = rate.type || rate.rate_type || rate.type_id
+      const typeStr = String(type).trim()
+      return typeStr === '2' || type === 2 || typeStr === 'cash' || typeStr === 'CASH'
+    }).sort((a, b) => {
+      const dateA = new Date(a.date || a.date_created || 0)
+      const dateB = new Date(b.date || b.date_created || 0)
+      return dateB - dateA
+    })
+
+    console.log('НБУ курсы:', nbuRates)
+    console.log('Межбанк курсы:', interbankRates)
+    console.log('Наличные курсы:', cashRates)
 
     // Получаем данные за крайние даты
     const latestNbu = nbuRates[0]
     const latestInterbank = interbankRates[0]
     const latestCash = cashRates[0]
 
+    console.log('latestNbu объект:', latestNbu)
+    console.log('latestNbu.value:', latestNbu?.value)
+    console.log('latestNbu все поля:', latestNbu ? Object.keys(latestNbu) : 'нет данных')
+
     // Получаем предыдущие данные для расчета изменений
     const previousNbu = nbuRates[1]
     const previousInterbank = interbankRates[1]
     const previousCash = cashRates[1]
 
+    // Улучшенное извлечение значений - проверяем явно на null/undefined
+    const getValue = (rate) => {
+      if (!rate) return null
+      // Проверяем все возможные поля
+      if (rate.value !== null && rate.value !== undefined) return rate.value
+      if (rate.rate !== null && rate.rate !== undefined) return rate.rate
+      if (rate.rate_value !== null && rate.rate_value !== undefined) return rate.rate_value
+      return null
+    }
+
     latestRates.value = {
-      nbu: latestNbu?.value || null,
-      interbank: latestInterbank?.value || null,
-      cash: latestCash?.value || null
+      nbu: getValue(latestNbu),
+      interbank: getValue(latestInterbank),
+      cash: getValue(latestCash)
     }
 
     previousRates.value = {
-      nbu: previousNbu?.value || null,
-      interbank: previousInterbank?.value || null,
-      cash: previousCash?.value || null
+      nbu: getValue(previousNbu),
+      interbank: getValue(previousInterbank),
+      cash: getValue(previousCash)
     }
 
     // Сохраняем даты
     rateDates.value = {
-      nbu: latestNbu?.date || null,
-      interbank: latestInterbank?.date || null,
-      cash: latestCash?.date || null
+      nbu: latestNbu?.date || latestNbu?.date_created || null,
+      interbank: latestInterbank?.date || latestInterbank?.date_created || null,
+      cash: latestCash?.date || latestCash?.date_created || null
     }
+
+    console.log('Установленные курсы:', {
+      latestRates: latestRates.value,
+      rateDates: rateDates.value,
+      latestNbuRaw: latestNbu,
+      nbuValue: latestRates.value.nbu
+    })
 
     // Расчет изменений
     const calculateChange = (latest, previous) => {
@@ -667,7 +868,14 @@ const fetchCurrencyRates = async () => {
     rateChanges.value.nbu = calculateChange(latestRates.value.nbu, previousRates.value.nbu)
     rateChanges.value.interbank = calculateChange(latestRates.value.interbank, previousRates.value.interbank)
     rateChanges.value.cash = calculateChange(latestRates.value.cash, previousRates.value.cash)
+    
+    console.log('Изменения курсов:', rateChanges.value)
   } catch (err) {
+    console.error('Ошибка при загрузке курсов валют:', err)
+    console.error('URL:', err.config?.url)
+    console.error('Статус:', err.response?.status)
+    console.error('Данные ошибки:', err.response?.data)
+    
     error.value = 'Ошибка при загрузке курсов валют: ' + (err.response?.data?.message || err.message)
     
     // Fallback дані для тестування
@@ -687,6 +895,8 @@ const fetchCurrencyRates = async () => {
       interbank: { value: 0.03, percent: 0.08, trend: 'down' },
       cash: { value: 0.02, percent: 0.05, trend: 'up' }
     }
+  } finally {
+    loading.value = false
   }
 }
 
