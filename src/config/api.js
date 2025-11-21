@@ -13,6 +13,7 @@ export const API_ENDPOINTS = {
     V_UTM: `${API_BASE_URL}/api_mk/v-utm/`,
     // 
     V_OUR: `${API_BASE_URL}/api_mk/v_our`,
+    V_GOOGLE_KW: `${API_BASE_URL}/api_mk/v_seo_google_search_console`,
     V_TOPIC: `${API_BASE_URL}/api_mk/v_topic`,
     V_TOP: `${API_BASE_URL}/api_mk/v_top`,
     V_TOP_D: `${API_BASE_URL}/api_mk/v_top_d`,

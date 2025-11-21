@@ -369,6 +369,11 @@ onMounted(() => {
             title="MetaTegs GEN"
             @click="navigateTo('/seo/metatags-check')"
           ></v-list-item>
+          <v-list-item
+            prepend-icon="mdi-google"
+            title="Google KW"
+            @click="navigateTo('/seo/google-kw')"
+          ></v-list-item>
         </v-list-group>
 
         <v-list-item

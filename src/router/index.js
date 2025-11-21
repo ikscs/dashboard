@@ -46,6 +46,11 @@ const routes = [
     component: () => import('../components/MetaTegs_check.vue')
   },
   {
+    path: '/seo/google-kw',
+    name: 'GoogleKW',
+    component: () => import('../components/GoogleKW.vue')
+  },
+  {
     path: '/market',
     name: 'Market',
     component: () => import('../components/Market.vue')
