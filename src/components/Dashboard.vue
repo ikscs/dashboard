@@ -44,6 +44,11 @@ const vOurData = ref([])
 const vOurLoading = ref(false)
 const vOurError = ref(null)
 
+// --- Данные из таблицы v_collaborator_data_group ---
+const collaboratorData = ref([])
+const collaboratorLoading = ref(false)
+const collaboratorError = ref(null)
+
 // --- Данные проектов КП ---
 const projectKpData = ref([])
 const projectKpLoading = ref(false)
@@ -511,6 +516,31 @@ const fetchVOurData = async () => {
     ]
   } finally {
     vOurLoading.value = false
+  }
+}
+
+const fetchCollaboratorData = async () => {
+  console.log('fetchCollaboratorData викликана')
+  collaboratorLoading.value = true
+  collaboratorError.value = null
+  
+  try {
+    console.log('Запрос к V_COLLABORATOR_DATA_GROUP:', API_ENDPOINTS.V_COLLABORATOR_DATA_GROUP)
+    console.log('Заголовки SEO:', API_HEADERS.SEO)
+    
+    const response = await axios.get(API_ENDPOINTS.V_COLLABORATOR_DATA_GROUP, {
+      headers: API_HEADERS.SEO
+    })
+    
+    const data = Array.isArray(response.data) ? response.data : []
+    console.log('Отримані дані v_collaborator_data_group:', data)
+    collaboratorData.value = data
+  } catch (err) {
+    console.error('Ошибка при загрузке collaborator data:', err)
+    collaboratorError.value = 'Ошибка при загрузке данных: ' + (err.response?.data?.message || err.message)
+    collaboratorData.value = []
+  } finally {
+    collaboratorLoading.value = false
   }
 }
 
@@ -990,6 +1020,7 @@ onMounted(() => {
   fetchCurrencyRates()
   fetchAdStats()
   fetchVOurData()
+  fetchCollaboratorData()
   fetchProjectKpData()
   fetchProjectsInProgressData()
   fetchProjectIssuesData()
@@ -1039,76 +1070,98 @@ onMounted(() => {
           </div>
         </div>
       </div>
-      <div class="ad-summary-block">
-        <h2 class="ad-summary-title">Реклама ({{ formatDate(adSummary.date) }})</h2>
-        <div v-if="!adSummary.date && !loading" class="no-data">
-          <v-icon color="grey" class="mr-2">mdi-chart-line</v-icon>
-          Немає даних реклами
-        </div>
-        <div class="ad-summary-row">
-          <span class="ad-summary-label">Показы:</span>
-          <span class="ad-summary-value">{{ formatAdValue(adSummary.show) }}</span>
-          <span v-html="formatAdDiff(adDiff.show)"></span>
-        </div>
-        <div class="ad-summary-row">
-          <span class="ad-summary-label">Клики:</span>
-          <span class="ad-summary-value">{{ formatAdValue(adSummary.click) }}</span>
-          <span v-html="formatAdDiff(adDiff.click)"></span>
-        </div>
-        <div class="ad-summary-row">
-          <span class="ad-summary-label">CTR:</span>
-          <span class="ad-summary-value">{{ formatAdPercent(adSummary.ctr) }}</span>
-          <span v-html="formatAdDiff(adDiff.ctr, 2, true)"></span>
-        </div>
-        <div class="ad-summary-date">Сравнение с {{ formatDate(adPrevSummary.date) }}</div>
-      </div>
       
-      <!-- Таблица данных из v_our -->
-      <div class="v-our-section">
-        <h2 class="section-title">
-          <v-icon class="mr-2">mdi-database</v-icon>
-          SEO
-        </h2>
-        
-        <div v-if="vOurLoading" class="loading">
-          <v-progress-circular indeterminate color="primary"></v-progress-circular>
-          <span class="ml-3">Завантаження даних...</span>
+      <!-- Контейнер для SEO и Collaborator (вертикально) -->
+      <div class="seo-collaborator-container">
+        <!-- Таблица данных из v_our -->
+        <div class="v-our-section">
+          <h2 class="section-title">
+            <v-icon class="mr-2">mdi-database</v-icon>
+            SEO
+          </h2>
+          
+          <div v-if="vOurLoading" class="loading">
+            <v-progress-circular indeterminate color="primary"></v-progress-circular>
+            <span class="ml-3">Завантаження даних...</span>
+          </div>
+          
+          <div v-else-if="vOurError" class="error-message">
+            <v-icon color="error" class="mr-2">mdi-alert-circle</v-icon>
+            {{ vOurError }}
+          </div>
+          
+          <div v-else-if="vOurData.length === 0" class="no-data">
+            <v-icon color="grey" class="mr-2">mdi-database-off</v-icon>
+            Немає даних для відображення
+          </div>
+          
+          <div v-else class="table-container">
+            <v-table class="data-table">
+              <thead>
+                <tr>
+                  <th v-for="(value, key) in vOurData[0]" :key="key" class="text-left">
+                    {{ formatColumnName(key) }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(row, index) in vOurData" :key="index" 
+                    @dblclick="openChartDialog(row)" 
+                    style="cursor: pointer;">
+                  <td v-for="(value, key) in row" :key="key">
+                    <span v-if="key === 'd'" v-html="formatCellValue(value, key)"></span>
+                    <span v-else>{{ formatCellValue(value, key) }}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </v-table>
+          </div>
         </div>
         
-        <div v-else-if="vOurError" class="error-message">
-          <v-icon color="error" class="mr-2">mdi-alert-circle</v-icon>
-          {{ vOurError }}
-        </div>
-        
-        <div v-else-if="vOurData.length === 0" class="no-data">
-          <v-icon color="grey" class="mr-2">mdi-database-off</v-icon>
-          Немає даних для відображення
-        </div>
-        
-        <div v-else class="table-container">
-          <v-table class="data-table">
-            <thead>
-              <tr>
-                <th v-for="(value, key) in vOurData[0]" :key="key" class="text-left">
-                  {{ formatColumnName(key) }}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(row, index) in vOurData" :key="index" 
-                  @dblclick="openChartDialog(row)" 
-                  style="cursor: pointer;">
-                <td v-for="(value, key) in row" :key="key">
-                  <span v-if="key === 'd'" v-html="formatCellValue(value, key)"></span>
-                  <span v-else>{{ formatCellValue(value, key) }}</span>
-                </td>
-              </tr>
-            </tbody>
-          </v-table>
+        <!-- Таблица данных из v_collaborator_data_group -->
+        <div class="collaborator-section">
+          <h2 class="section-title">
+            <v-icon class="mr-2">mdi-account-group</v-icon>
+            Collaborator Data
+          </h2>
+          
+          <div v-if="collaboratorLoading" class="loading">
+            <v-progress-circular indeterminate color="primary"></v-progress-circular>
+            <span class="ml-3">Завантаження даних...</span>
+          </div>
+          
+          <div v-else-if="collaboratorError" class="error-message">
+            <v-icon color="error" class="mr-2">mdi-alert-circle</v-icon>
+            {{ collaboratorError }}
+          </div>
+          
+          <div v-else-if="collaboratorData.length === 0" class="no-data">
+            <v-icon color="grey" class="mr-2">mdi-database-off</v-icon>
+            Немає даних для відображення
+          </div>
+          
+          <div v-else class="table-container">
+            <v-table class="data-table">
+              <thead>
+                <tr>
+                  <th v-for="(value, key) in collaboratorData[0]" :key="key" class="text-left">
+                    {{ formatColumnName(key) }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(row, index) in collaboratorData" :key="index">
+                  <td v-for="(value, key) in row" :key="key">
+                    {{ formatCellValue(value, key) }}
+                  </td>
+                </tr>
+              </tbody>
+            </v-table>
+          </div>
         </div>
       </div>
-      
-      <!-- Блок проектов КП -->
+    
+    <!-- Блок проектов КП -->
       <div class="projects-section">
         <h2 class="section-title">
           <v-icon class="mr-2">mdi-folder-multiple</v-icon>
@@ -1384,6 +1437,7 @@ onMounted(() => {
 .currency-rate-row {
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
   gap: 32px;
   justify-content: center;
   align-items: flex-start;
@@ -1465,50 +1519,6 @@ h1 {
 .mt-4 {
   margin-top: 1rem;
 }
-
-/* --- Рекламная сводка --- */
-.ad-summary-block {
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-  padding: 2rem 1.5rem 1.5rem 1.5rem;
-  min-width: 260px;
-  max-width: 340px;
-  flex: 1 1 260px;
-  margin: 2rem 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-.ad-summary-title {
-  font-size: 1.3rem;
-  font-weight: 600;
-  margin-bottom: 1.2rem;
-  color: #2c3e50;
-}
-.ad-summary-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 1.1rem;
-  margin-bottom: 0.7rem;
-}
-.ad-summary-label {
-  color: #555;
-  min-width: 70px;
-}
-.ad-summary-value {
-  font-weight: 600;
-  color: #2c3e50;
-  min-width: 60px;
-  text-align: right;
-}
-.ad-summary-date {
-  font-size: 0.85rem;
-  color: #888;
-  margin-top: 1.2rem;
-  font-style: italic;
-}
 .ad-green {
   color: #4CAF50;
   font-weight: 600;
@@ -1525,15 +1535,31 @@ h1 {
   max-width: 100%;
 }
 
+.seo-collaborator-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  flex: 2 1 600px;
+  min-width: 600px;
+  max-width: 1000px;
+}
+
 .v-our-section {
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   padding: 1.5rem;
-  margin: 2rem 0;
-  min-width: 350px;
-  max-width: 500px;
-  flex: 2 1 350px;
+  margin: 0;
+}
+
+.collaborator-section {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  margin: 0;
+  width: 100%;
+  overflow-x: visible;
 }
 
 .projects-section {
@@ -1609,7 +1635,8 @@ h1 {
 
 .data-table {
   width: 100%;
-  min-width: 300px;
+  min-width: 100%;
+  table-layout: auto;
 }
 
 :deep(.data-table th) {
@@ -1979,14 +2006,24 @@ h1 {
     align-items: stretch;
     gap: 16px;
   }
-  .currency-rate, .ad-summary-block {
+  .currency-rate {
     margin: 1rem auto;
+    max-width: 100%;
+  }
+  
+  .seo-collaborator-container {
+    width: 100%;
     max-width: 100%;
   }
   
   .v-our-section {
     padding: 16px;
-    margin-bottom: 24px;
+    margin-bottom: 16px;
+  }
+  
+  .collaborator-section {
+    padding: 16px;
+    margin-bottom: 0;
   }
   
   .section-title {

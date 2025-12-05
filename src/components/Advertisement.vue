@@ -1,5 +1,39 @@
 <template>
   <div class="advertisement-page">
+    <!-- Блок краткой статистики рекламы -->
+    <v-card class="welcome-card mb-6">
+      <v-card-title class="d-flex align-center">
+        <v-icon size="large" class="mr-3">mdi-google-ads</v-icon>
+        Реклама ({{ formatDate(adSummary.date) }})
+      </v-card-title>
+      
+      <v-card-text>
+        <div v-if="!adSummary.date && !adLoading" class="text-center py-8">
+          <v-icon color="grey" class="mr-2">mdi-chart-line</v-icon>
+          Немає даних реклами
+        </div>
+        
+        <div v-else class="ad-summary-content">
+          <div class="ad-summary-row">
+            <span class="ad-summary-label">Показы:</span>
+            <span class="ad-summary-value">{{ formatAdValue(adSummary.show) }}</span>
+            <span v-html="formatAdDiff(adDiff.show)"></span>
+          </div>
+          <div class="ad-summary-row">
+            <span class="ad-summary-label">Клики:</span>
+            <span class="ad-summary-value">{{ formatAdValue(adSummary.click) }}</span>
+            <span v-html="formatAdDiff(adDiff.click)"></span>
+          </div>
+          <div class="ad-summary-row">
+            <span class="ad-summary-label">CTR:</span>
+            <span class="ad-summary-value">{{ formatAdPercent(adSummary.ctr) }}</span>
+            <span v-html="formatAdDiff(adDiff.ctr, 2, true)"></span>
+          </div>
+          <div class="ad-summary-date">Сравнение с {{ formatDate(adPrevSummary.date) }}</div>
+        </div>
+      </v-card-text>
+    </v-card>
+
     <!-- Первая таблица: UTM данные -->
     <v-card class="welcome-card mb-6">
       <v-card-title class="d-flex align-center">
@@ -113,6 +147,27 @@ import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
 import { API_ENDPOINTS, API_HEADERS } from '../config/api'
 
+// --- Рекламная статистика ---
+const adStats = ref([])
+const adSummary = ref({
+  show: null,
+  click: null,
+  ctr: null,
+  date: null
+})
+const adPrevSummary = ref({
+  show: null,
+  click: null,
+  ctr: null,
+  date: null
+})
+const adDiff = ref({
+  show: null,
+  click: null,
+  ctr: null
+})
+const adLoading = ref(false)
+
 // Данные для первой таблицы (UTM)
 const utmData = ref(null)
 const utmLoading = ref(false)
@@ -148,6 +203,122 @@ const headers = computed(() => {
     key: key
   }))
 })
+
+// Функция форматирования даты
+const formatDate = (dateString) => {
+  if (!dateString) return '—'
+  try {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('uk-UA', { 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit' 
+    })
+  } catch {
+    return dateString
+  }
+}
+
+// Функции форматирования рекламных данных
+const formatAdValue = (value, digits = 0) => {
+  if (value === null || value === undefined) return '—'
+  return new Intl.NumberFormat('uk-UA', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits
+  }).format(value)
+}
+
+const formatAdPercent = (value) => {
+  if (value === null || value === undefined) return '—'
+  return (value * 100).toFixed(2) + '%'
+}
+
+const formatAdDiff = (value, digits = 0, isPercent = false) => {
+  if (value === null || value === undefined) return ''
+  const sign = value >= 0 ? '+' : ''
+  const formatted = isPercent 
+    ? (value * 100).toFixed(digits) + '%'
+    : new Intl.NumberFormat('uk-UA', {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits
+      }).format(value)
+  const color = value >= 0 ? 'green' : 'red'
+  return ` <span style="color: ${color}">(${sign}${formatted})</span>`
+}
+
+// Загрузка рекламной статистики
+const fetchAdStats = async () => {
+  adLoading.value = true
+  try {
+    console.log('Запрос к ADVERTISEMENT:', API_ENDPOINTS.ADVERTISEMENT)
+    console.log('Заголовки:', API_HEADERS.ADV)
+    
+    const response = await axios.get(API_ENDPOINTS.ADVERTISEMENT, {
+      headers: API_HEADERS.ADV
+    })
+    
+    console.log('Ответ API:', response.status, response.data)
+    
+    // Обработка разных форматов ответа
+    let data = []
+    if (Array.isArray(response.data)) {
+      data = response.data
+    } else if (response.data && typeof response.data === 'object') {
+      if (Array.isArray(response.data.data)) {
+        data = response.data.data
+      } else if (Array.isArray(response.data.results)) {
+        data = response.data.results
+      } else {
+        data = [response.data]
+      }
+    }
+    
+    adStats.value = data
+    
+    if (data.length > 0) {
+      const sorted = [...data].sort((a, b) => {
+        const dateA = new Date(a.date || a.date_created || a.created_at || 0)
+        const dateB = new Date(b.date || b.date_created || b.created_at || 0)
+        return dateB - dateA
+      })
+      
+      const latest = sorted[0]
+      const prev = sorted[1] || {}
+      
+      adSummary.value = {
+        show: latest.show ?? latest.total_views ?? latest.views ?? latest.impressions ?? null,
+        click: latest.click ?? latest.total_clicks ?? latest.clicks ?? null,
+        ctr: latest.ctr ?? (latest.click && latest.show ? latest.click / latest.show : null),
+        date: latest.date ?? latest.date_created ?? latest.created_at ?? null
+      }
+      
+      adPrevSummary.value = {
+        show: prev.show ?? prev.total_views ?? prev.views ?? prev.impressions ?? null,
+        click: prev.click ?? prev.total_clicks ?? prev.clicks ?? null,
+        ctr: prev.ctr ?? (prev.click && prev.show ? prev.click / prev.show : null),
+        date: prev.date ?? prev.date_created ?? prev.created_at ?? null
+      }
+      
+      adDiff.value = {
+        show: adSummary.value.show !== null && adPrevSummary.value.show !== null ? adSummary.value.show - adPrevSummary.value.show : null,
+        click: adSummary.value.click !== null && adPrevSummary.value.click !== null ? adSummary.value.click - adPrevSummary.value.click : null,
+        ctr: adSummary.value.ctr !== null && adPrevSummary.value.ctr !== null ? adSummary.value.ctr - adPrevSummary.value.ctr : null
+      }
+    } else {
+      adSummary.value = { show: null, click: null, ctr: null, date: null }
+      adPrevSummary.value = { show: null, click: null, ctr: null, date: null }
+      adDiff.value = { show: null, click: null, ctr: null }
+    }
+  } catch (err) {
+    console.error('Ошибка при загрузке рекламы:', err)
+    adStats.value = []
+    adSummary.value = { show: null, click: null, ctr: null, date: null }
+    adPrevSummary.value = { show: null, click: null, ctr: null, date: null }
+    adDiff.value = { show: null, click: null, ctr: null }
+  } finally {
+    adLoading.value = false
+  }
+}
 
 // Загрузка UTM данных
 const loadUtmData = async () => {
@@ -194,6 +365,7 @@ const testAPI = async () => {
 
 // Автоматическая загрузка данных при монтировании компонента
 onMounted(() => {
+  fetchAdStats() // Добавьте вызов
   loadUtmData()
   testAPI()
 })
@@ -284,5 +456,43 @@ onMounted(() => {
     padding: 8px 12px;
     font-size: 0.875rem;
   }
+}
+
+.ad-summary-content {
+  padding: 16px 0;
+}
+
+.ad-summary-row {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(var(--v-theme-outline), 0.12);
+}
+
+.ad-summary-row:last-of-type {
+  border-bottom: none;
+}
+
+.ad-summary-label {
+  font-weight: 600;
+  min-width: 120px;
+  color: rgba(var(--v-theme-on-surface), 0.87);
+}
+
+.ad-summary-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: rgba(var(--v-theme-primary), 1);
+  margin-left: 16px;
+  margin-right: 8px;
+}
+
+.ad-summary-date {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(var(--v-theme-outline), 0.12);
+  font-size: 0.875rem;
+  color: rgba(var(--v-theme-on-surface), 0.6);
+  font-style: italic;
 }
 </style> 
