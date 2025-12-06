@@ -17,6 +17,7 @@ export const API_ENDPOINTS = {
     V_TOPIC: `${API_BASE_URL}/api_mk/v_topic`,
     V_TOP: `${API_BASE_URL}/api_mk/v_top`,
     V_COLLABORATOR_DATA_GROUP: `${API_BASE_URL}/api_mk/v_collaborator_data_gr`,
+    V_COLLABORATOR_GOOGLE_SEO: `${API_BASE_URL}/api_mk/v_collab_google_seo_ikscs`,
     V_TOP_D: `${API_BASE_URL}/api_mk/v_top_d`,
     META_TAGS: `${API_BASE_URL}/api_mk/meta_tags`,
     META_GROUP_IKSCS: `${API_BASE_URL}/api_cp/v_meta_group_ikscs`,

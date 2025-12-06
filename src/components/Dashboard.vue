@@ -1,6 +1,7 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue'
 import axios from 'axios'
+import Chart from 'chart.js/auto'
 import { API_ENDPOINTS, API_HEADERS, API_BASE_URL } from '../config/api'
 
 const message = ref('Загрузка...')
@@ -48,6 +49,12 @@ const vOurError = ref(null)
 const collaboratorData = ref([])
 const collaboratorLoading = ref(false)
 const collaboratorError = ref(null)
+
+// --- Данные для графіка V_COLLABORATOR_GOOGLE_SEO ---
+const collaboratorGoogleSeoData = ref([])
+const collaboratorGoogleSeoLoading = ref(false)
+const collaboratorGoogleSeoError = ref(null)
+const collaboratorGoogleSeoChart = ref(null)
 
 // --- Данные проектов КП ---
 const projectKpData = ref([])
@@ -544,6 +551,289 @@ const fetchCollaboratorData = async () => {
   }
 }
 
+const fetchCollaboratorGoogleSeo = async () => {
+  console.log('fetchCollaboratorGoogleSeo викликана')
+  collaboratorGoogleSeoLoading.value = true
+  collaboratorGoogleSeoError.value = null
+  
+  try {
+    console.log('Запрос к V_COLLABORATOR_GOOGLE_SEO:', API_ENDPOINTS.V_COLLABORATOR_GOOGLE_SEO)
+    console.log('Заголовки SEO:', API_HEADERS.SEO)
+    
+    const response = await axios.get(API_ENDPOINTS.V_COLLABORATOR_GOOGLE_SEO, {
+      headers: API_HEADERS.SEO
+    })
+    
+    console.log('Повна відповідь API:', response)
+    console.log('response.data:', response.data)
+    console.log('Тип response.data:', typeof response.data)
+    console.log('Array.isArray(response.data):', Array.isArray(response.data))
+    
+    let data = []
+    if (Array.isArray(response.data)) {
+      data = response.data
+    } else if (response.data && typeof response.data === 'object') {
+      // Можливо дані в об'єкті, спробуємо знайти масив
+      if (response.data.data && Array.isArray(response.data.data)) {
+        data = response.data.data
+      } else if (response.data.results && Array.isArray(response.data.results)) {
+        data = response.data.results
+      } else {
+        // Спробуємо перетворити об'єкт в масив
+        data = Object.values(response.data).filter(item => typeof item === 'object')
+      }
+    }
+    
+    console.log('Оброблені дані V_COLLABORATOR_GOOGLE_SEO:', data)
+    console.log('Кількість записів:', data.length)
+    if (data.length > 0) {
+      console.log('Перший запис:', data[0])
+      console.log('Ключі першого запису:', Object.keys(data[0]))
+    }
+    
+    collaboratorGoogleSeoData.value = data
+    
+    // Оновлюємо графік після отримання даних з затримкою для рендерингу DOM
+    await nextTick()
+    setTimeout(() => {
+      updateCollaboratorGoogleSeoChart()
+    }, 100)
+  } catch (err) {
+    console.error('Ошибка при загрузке collaborator google seo data:', err)
+    console.error('URL:', err.config?.url)
+    console.error('Заголовки запроса:', err.config?.headers)
+    console.error('Статус:', err.response?.status)
+    console.error('Данные ошибки:', err.response?.data)
+    console.error('Повна помилка:', err)
+    collaboratorGoogleSeoError.value = 'Ошибка при загрузке данных: ' + (err.response?.data?.message || err.message)
+    collaboratorGoogleSeoData.value = []
+  } finally {
+    collaboratorGoogleSeoLoading.value = false
+  }
+}
+
+const updateCollaboratorGoogleSeoChart = () => {
+  console.log('updateCollaboratorGoogleSeoChart викликана')
+  console.log('collaboratorGoogleSeoData.value:', collaboratorGoogleSeoData.value)
+  console.log('Довжина даних:', collaboratorGoogleSeoData.value?.length)
+  
+  if (collaboratorGoogleSeoChart.value) {
+    collaboratorGoogleSeoChart.value.destroy()
+    collaboratorGoogleSeoChart.value = null
+  }
+
+  if (!collaboratorGoogleSeoData.value || collaboratorGoogleSeoData.value.length === 0) {
+    console.warn('Немає даних для графіка')
+    return
+  }
+
+  // Чекаємо, поки DOM оновиться
+  nextTick(() => {
+    setTimeout(() => {
+      const ctx = document.getElementById('collaboratorGoogleSeoChart')
+      if (!ctx) {
+        console.warn('Canvas element не знайдено, спробую ще раз через 300ms')
+        setTimeout(() => {
+          const ctxRetry = document.getElementById('collaboratorGoogleSeoChart')
+          if (!ctxRetry) {
+            console.error('Canvas element все ще не знайдено після повторної спроби')
+            return
+          }
+          createChart(ctxRetry)
+        }, 300)
+        return
+      }
+      createChart(ctx)
+    }, 200)
+  })
+}
+
+const createChart = (ctx) => {
+  if (!collaboratorGoogleSeoData.value || collaboratorGoogleSeoData.value.length === 0) {
+    console.warn('Немає даних для графіка')
+    return
+  }
+
+  console.log('Обробка даних для графіка...')
+  console.log('Перший запис даних:', collaboratorGoogleSeoData.value[0])
+  console.log('Всі ключі в даних:', collaboratorGoogleSeoData.value.map(item => Object.keys(item)))
+  
+  // Виводимо всі ключі з першого запису для діагностики
+  if (collaboratorGoogleSeoData.value.length > 0) {
+    const firstItem = collaboratorGoogleSeoData.value[0]
+    const allKeys = Object.keys(firstItem)
+    console.log('Всі ключі першого запису:', allKeys)
+    console.log('Всі значення першого запису:', firstItem)
+    
+    // Автоматично знаходимо поля, які можуть бути ym, collab, google
+    const possibleYmKeys = allKeys.filter(key => 
+      /ym|year.*month|date.*ym/i.test(key) || 
+      (typeof firstItem[key] === 'number' && firstItem[key] > 200000 && firstItem[key] < 300000)
+    )
+    const possibleCollabKeys = allKeys.filter(key => 
+      /collab/i.test(key) && !/google/i.test(key)
+    )
+    const possibleGoogleKeys = allKeys.filter(key => 
+      /google/i.test(key)
+    )
+    
+    console.log('Можливі ключі для ym:', possibleYmKeys)
+    console.log('Можливі ключі для collab:', possibleCollabKeys)
+    console.log('Можливі ключі для google:', possibleGoogleKeys)
+  }
+
+  // Функція для отримання значення ym з різних можливих полів
+  const getYmValue = (item) => {
+    // Перевіряємо всі можливі варіанти назв
+    return item.ym || item.YM || item.ym_value || item.ym_date || 
+           item.year_month || item.yearMonth || item.date_ym || 
+           item.yearmonth || item.yearMonth || item.ym_date ||
+           (item.date ? String(item.date).substring(0, 6).replace(/-/g, '') : null) || 
+           (item.date ? String(item.date).substring(0, 7).replace(/-/g, '') : null) || 0
+  }
+
+  // Сортуємо дані по ym
+  const sortedData = [...collaboratorGoogleSeoData.value].sort((a, b) => {
+    const ymA = getYmValue(a)
+    const ymB = getYmValue(b)
+    return (parseInt(String(ymA).replace(/[^0-9]/g, '')) || 0) - (parseInt(String(ymB).replace(/[^0-9]/g, '')) || 0)
+  })
+
+  console.log('Відсортовані дані:', sortedData)
+
+  // Отримуємо значення для осі X (ym)
+  const labels = sortedData.map(item => {
+    const ym = getYmValue(item)
+    return String(ym)
+  })
+  console.log('Labels (ym):', labels)
+
+  // Отримуємо значення для collab - перевіряємо різні варіанти назв (включаючи нижній регістр)
+  const collabData = sortedData.map(item => {
+    // Перевіряємо всі можливі варіанти назв полів
+    const value = item.collab || item.COLLAB || item.Collab || item.collaborator || 
+                  item.COLLABORATOR || item.Collaborator || item.collab_value || 
+                  item.collab_count || item.collaborator_count || item.collab_data ||
+                  item.collaborator_data || item.collab_value || item.collab_data || null
+    
+    // Якщо значення - число, використовуємо його
+    if (typeof value === 'number') {
+      return value
+    }
+    
+    // Якщо значення - рядок, намагаємося розпарсити
+    const parsed = value !== null && value !== undefined ? parseFloat(value) : null
+    if (parsed === null && value !== null && value !== '') {
+      console.warn(`Не вдалося розпарсити collab значення:`, value, 'тип:', typeof value, 'для запису:', item)
+    }
+    return parsed
+  })
+  console.log('Collab data:', collabData)
+  console.log('Collab data (фільтровані null):', collabData.filter(v => v !== null))
+
+  // Отримуємо значення для google - перевіряємо різні варіанти назв (включаючи нижній регістр)
+  const googleData = sortedData.map(item => {
+    // Перевіряємо всі можливі варіанти назв полів
+    const value = item.google || item.GOOGLE || item.Google || item.google_value || 
+                  item.GOOGLE_VALUE || item.google_count || item.google_data || 
+                  item.google_value || item.google_data || null
+    
+    // Якщо значення - число, використовуємо його
+    if (typeof value === 'number') {
+      return value
+    }
+    
+    // Якщо значення - рядок, намагаємося розпарсити
+    const parsed = value !== null && value !== undefined ? parseFloat(value) : null
+    if (parsed === null && value !== null && value !== '') {
+      console.warn(`Не вдалося розпарсити google значення:`, value, 'тип:', typeof value, 'для запису:', item)
+    }
+    return parsed
+  })
+  console.log('Google data:', googleData)
+  console.log('Google data (фільтровані null):', googleData.filter(v => v !== null))
+  
+  // Перевіряємо, чи є хоча б одне значення для відображення
+  const hasCollabData = collabData.some(v => v !== null)
+  const hasGoogleData = googleData.some(v => v !== null)
+  console.log('Є дані collab:', hasCollabData)
+  console.log('Є дані google:', hasGoogleData)
+  
+  if (!hasCollabData && !hasGoogleData) {
+    console.error('Немає даних для відображення графіка!')
+    console.error('Спробуйте перевірити назви полів в API відповіді')
+    console.error('Доступні поля в першому записі:', Object.keys(collaboratorGoogleSeoData.value[0] || {}))
+    return
+  }
+
+  // Створюємо datasets тільки для тих, що мають дані
+  const datasets = []
+  if (hasCollabData) {
+    datasets.push({
+      label: 'Collab',
+      data: collabData,
+      borderColor: '#36A2EB',
+      backgroundColor: 'rgba(54, 162, 235, 0.1)',
+      fill: false,
+      spanGaps: true,
+      tension: 0.1
+    })
+  }
+  if (hasGoogleData) {
+    datasets.push({
+      label: 'Google',
+      data: googleData,
+      borderColor: '#FF6384',
+      backgroundColor: 'rgba(255, 99, 132, 0.1)',
+      fill: false,
+      spanGaps: true,
+      tension: 0.1
+    })
+  }
+
+  console.log('Створюю графік з datasets:', datasets.length)
+
+  collaboratorGoogleSeoChart.value = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'top',
+          align: 'start',
+          labels: {
+            boxWidth: 12,
+            padding: 15
+          }
+        },
+        title: {
+          display: false
+        }
+      },
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: 'YM'
+          }
+        },
+        y: {
+          beginAtZero: false,
+          title: {
+            display: true,
+            text: 'Значення'
+          }
+        }
+      }
+    }
+  })
+}
+
 const fetchProjectKpData = async () => {
   projectKpLoading.value = true
   projectKpError.value = null
@@ -1021,9 +1311,28 @@ onMounted(() => {
   fetchAdStats()
   fetchVOurData()
   fetchCollaboratorData()
+  fetchCollaboratorGoogleSeo()
   fetchProjectKpData()
   fetchProjectsInProgressData()
   fetchProjectIssuesData()
+})
+
+// Автоматичне оновлення графіка при зміні даних
+watch(collaboratorGoogleSeoData, (newData) => {
+  if (newData && newData.length > 0) {
+    console.log('Дані змінилися, оновлюю графік...')
+    nextTick(() => {
+      setTimeout(() => {
+        updateCollaboratorGoogleSeoChart()
+      }, 100)
+    })
+  }
+}, { deep: true })
+
+onBeforeUnmount(() => {
+  if (collaboratorGoogleSeoChart.value) {
+    collaboratorGoogleSeoChart.value.destroy()
+  }
 })
 </script>
 
@@ -1157,6 +1466,35 @@ onMounted(() => {
                 </tr>
               </tbody>
             </v-table>
+          </div>
+        </div>
+        
+        <!-- Графік V_COLLABORATOR_GOOGLE_SEO -->
+        <div class="collaborator-google-seo-section">
+          <h2 class="section-title">
+            <v-icon class="mr-2">mdi-chart-line</v-icon>
+            Collaborator & Google SEO
+          </h2>
+          
+          <div v-if="collaboratorGoogleSeoLoading" class="loading">
+            <v-progress-circular indeterminate color="primary"></v-progress-circular>
+            <span class="ml-3">Завантаження даних...</span>
+          </div>
+          
+          <div v-else-if="collaboratorGoogleSeoError" class="error-message">
+            <v-icon color="error" class="mr-2">mdi-alert-circle</v-icon>
+            {{ collaboratorGoogleSeoError }}
+          </div>
+          
+          <div v-else-if="collaboratorGoogleSeoData.length === 0" class="no-data">
+            <v-icon color="grey" class="mr-2">mdi-chart-line-variant</v-icon>
+            Немає даних для відображення
+          </div>
+          
+          <div v-else>
+            <div class="chart-container">
+              <canvas id="collaboratorGoogleSeoChart"></canvas>
+            </div>
           </div>
         </div>
       </div>
@@ -1560,6 +1898,22 @@ h1 {
   margin: 0;
   width: 100%;
   overflow-x: visible;
+}
+
+.collaborator-google-seo-section {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  margin: 0;
+  width: 100%;
+}
+
+.chart-container {
+  position: relative;
+  height: 200px;
+  width: 100%;
+  margin-top: 1rem;
 }
 
 .projects-section {
